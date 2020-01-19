@@ -1,33 +1,38 @@
 import 'package:flutter/material.dart';
 
-///
-/// Create by Hugo.Guo
-/// Date: 2019-08-09
-///
-/// Register the RouteObserver as a navigation observer.
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
+/// 生命周期状态：扩展Flutter生命周期
+/// @author: grw
 abstract class LifecycleState<T extends StatefulWidget> extends State<T>
     with WidgetsBindingObserver, RouteAware {
   String tag = T.toString();
 
-  // 参照State中写法，防止子类获取不到正确的widget。
   T get widget => super.widget;
 
-  //是否在栈顶
   bool _isTop = false;
+  WidgetsBinding _widgetsBinding;
+  bool _isMount = false;
 
   @override
+  @mustCallSuper
   void initState() {
     // TODO: implement initState
     super.initState();
     onCreate();
     onResume();
-    onLoadData();
-    WidgetsBinding.instance.addObserver(this);
+    _widgetsBinding = WidgetsBinding.instance;
+    _widgetsBinding.addPostFrameCallback((callback) {
+      if (!_isMount) {
+        _isMount = true;
+        onMount();
+      }
+    });
+    _widgetsBinding.addObserver(this);
   }
 
   @override
+  @mustCallSuper
   void deactivate() {
     // TODO: implement deactivate
     super.deactivate();
@@ -35,18 +40,16 @@ abstract class LifecycleState<T extends StatefulWidget> extends State<T>
   }
 
   @override
+  @mustCallSuper
   void didChangeAppLifecycleState(AppLifecycleState state) {
-//    log("AppLifecycleState:$state");
     // TODO: implement didChangeAppLifecycleState
     super.didChangeAppLifecycleState(state);
     switch (state) {
-      case AppLifecycleState.resumed:
-        if (_isTop) {
-          onForeground();
-          onResume();
-        }
+      case AppLifecycleState.detached:
+        onDetached();
         break;
       case AppLifecycleState.inactive:
+        onInactive();
         break;
       case AppLifecycleState.paused:
         if (_isTop) {
@@ -54,7 +57,11 @@ abstract class LifecycleState<T extends StatefulWidget> extends State<T>
           onPause();
         }
         break;
-      case AppLifecycleState.suspending:
+      case AppLifecycleState.resumed:
+        if (_isTop) {
+          onForeground();
+          onResume();
+        }
         break;
       default:
         break;
@@ -64,20 +71,21 @@ abstract class LifecycleState<T extends StatefulWidget> extends State<T>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-//    log("didChangeDependencies");
     routeObserver.subscribe(this, ModalRoute.of(context));
   }
 
   @override
+  @mustCallSuper
   void dispose() {
     // TODO: implement dispose
     onDestroy();
-    WidgetsBinding.instance.removeObserver(this);
+    _widgetsBinding.removeObserver(this);
     routeObserver.unsubscribe(this);
     super.dispose();
   }
 
   @override
+  @mustCallSuper
   void didPush() {
     // TODO: implement didPush
     super.didPush();
@@ -86,6 +94,7 @@ abstract class LifecycleState<T extends StatefulWidget> extends State<T>
   }
 
   @override
+  @mustCallSuper
   void didPushNext() {
     // TODO: implement didPushNext
     super.didPushNext();
@@ -95,6 +104,7 @@ abstract class LifecycleState<T extends StatefulWidget> extends State<T>
   }
 
   @override
+  @mustCallSuper
   void didPop() {
     // TODO: implement didPop
     super.didPop();
@@ -103,6 +113,7 @@ abstract class LifecycleState<T extends StatefulWidget> extends State<T>
   }
 
   @override
+  @mustCallSuper
   void didPopNext() {
     // TODO: implement didPopNext
     super.didPopNext();
@@ -111,27 +122,37 @@ abstract class LifecycleState<T extends StatefulWidget> extends State<T>
     _isTop = true;
   }
 
-  /// 用于让子类去实现的初始化方法
+  /// 应用处于Flutter渲染引擎中，与视图层分离
+  void onDetached() {
+//    log("onDetached");
+  }
+
+  /// 应用处于不活动状态，无法处理用户响应
+  void onInactive() {
+//    log("onInactive");
+  }
+
+  /// 应用处于创建状态，可初始化一些信息，例如：接口调用
   void onCreate() {
 //    log("onCreate");
   }
 
-  /// 用于让子类去实现的不可见变为可见时的方法
+  /// 应用处于不可见变为可见时的状态
   void onResume() {
 //    log("onResume");
   }
 
-  ///加载数据
-  void onLoadData() {
-//    log("onLoadData");
+  /// 应用处于build渲染完毕状态
+  void onMount() {
+//    log("onMount");
   }
 
-  /// 用于让子类去实现的可见变为不可见时调用的方法。
+  /// 应用处于不可见且不能响应用户的输入，但在后台继续活动中
   void onPause() {
 //    log("onPause");
   }
 
-  /// 用于让子类去实现的销毁方法。
+  /// 应用处于销毁状态
   void onDestroy() {
 //    log("onDestroy");
   }
