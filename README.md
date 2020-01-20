@@ -10,6 +10,6 @@ LifecycleInnerState： 任意
 ```
 lifecycle_state:
     git:
-      url: "https://github.com/GRW999/lifecycle_state.git"
+      url: "https://github.com/ivechain/lifecycle_state.git"
 ```
 
